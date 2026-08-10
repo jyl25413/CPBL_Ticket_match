@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}站內通知 | CPBL 票券平台{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card card-custom p-4">
+            <h4 class="fw-bold mb-3" style="color: var(--cpbl-navy);">
+                <i class="fa-solid fa-bell me-2"></i> 站內即時通知
+            </h4>
+
+            {% if notifications %}
+                <div class="list-group list-group-flush">
+                    {% for n in notifications %}
+                        <div class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="mb-1 text-dark fw-bold">{{ n.message }}</p>
+                                <span class="text-muted small"><i class="fa-regular fa-clock me-1"></i> {{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </div>
+                            {% if n.link %}
+                                <a href="{{ n.link }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                    查看細節 <i class="fa-solid fa-chevron-right ms-1"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="fa-regular fa-bell-slash fa-3x mb-3"></i>
+                    <p>目前沒有任何通知訊息</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

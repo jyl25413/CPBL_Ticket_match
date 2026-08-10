@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}刊登待售票券/商品 | CPBL 票券平台{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+        <div class="card card-custom p-4 shadow-sm">
+            <h3 class="fw-bold mb-2" style="color: var(--cpbl-navy);">⚾ 刊登待售票券 / 週邊</h3>
+            <p class="text-muted small mb-3">請詳細填寫票券資訊。依規定，<span class="text-danger fw-bold">轉售價格絕不可高於票面原價</span>！</p>
+
+            <form method="POST" action="{{ url_for('create_listing') }}">
+                {{ form.hidden_tag() }}
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        {{ form.category.label(class="form-label font-weight-bold") }}
+                        {{ form.category(class="form-select rounded-3") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.team.label(class="form-label font-weight-bold") }}
+                        {{ form.team(class="form-select rounded-3") }}
+                    </div>
+
+                    <div class="col-md-6">
+                        {{ form.stadium.label(class="form-label font-weight-bold") }}
+                        {{ form.stadium(class="form-select rounded-3") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.ticket_type.label(class="form-label font-weight-bold") }}
+                        {{ form.ticket_type(class="form-select rounded-3") }}
+                    </div>
+
+                    <div class="col-md-8">
+                        {{ form.zone.label(class="form-label font-weight-bold") }}
+                        {{ form.zone(class="form-control rounded-3", placeholder="例：內野 B 區 12 排 5 號 / 熱區 8 排") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.quantity.label(class="form-label font-weight-bold") }}
+                        {{ form.quantity(class="form-control rounded-3") }}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label font-weight-bold text-secondary">
+                            <i class="fa-solid fa-tag me-1"></i> {{ form.original_price.label.text }}
+                        </label>
+                        {{ form.original_price(class="form-control rounded-3", placeholder="票面或官方定價") }}
+                        {% for error in form.original_price.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label font-weight-bold text-danger">
+                            <i class="fa-solid fa-hand-holding-dollar me-1"></i> {{ form.price.label.text }} (防黃牛)
+                        </label>
+                        {{ form.price(class="form-control rounded-3 border-danger", placeholder="必須 <= 原價") }}
+                        {% for error in form.price.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-md-6">
+                        {{ form.delivery_method.label(class="form-label font-weight-bold") }}
+                        {{ form.delivery_method(class="form-select rounded-3") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.ticket_image_url.label(class="form-label font-weight-bold") }}
+                        {{ form.ticket_image_url(class="form-control rounded-3", placeholder="https://...") }}
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top">
+                    {{ form.submit(class="btn btn-cpbl w-100 py-2 fs-6") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

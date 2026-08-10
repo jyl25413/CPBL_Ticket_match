@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}賣家審核後台 | CPBL 票券平台{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h3 class="fw-bold" style="color: var(--cpbl-navy);">
+            <i class="fa-solid fa-user-shield me-2"></i> 賣家自主審核後台
+        </h3>
+        <p class="text-muted">檢視申請人的社群連結、歷史評分與違約次數，自由選擇最心儀的真心球迷接手票券！</p>
+    </div>
+</div>
+
+{% if listings %}
+    {% for listing in listings %}
+        <div class="card card-custom mb-4 p-3 border-top border-4 border-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+                    <div>
+                        <span class="badge-team me-1">{{ listing.team }}</span>
+                        <span class="badge-stadium me-1">{{ listing.stadium }}</span>
+                        <span class="badge bg-primary">{{ listing.zone }}</span>
+                        <h4 class="fw-bold text-dark mt-2 mb-0">單價: ${{ listing.price }} / 原價: ${{ listing.original_price }} ({{ listing.quantity }} 張)</h4>
+                    </div>
+                    <div>
+                        {% if listing.status == 'active' %}
+                            <span class="badge bg-success fs-6">審核招募中</span>
+                        {% elif listing.status == 'pending' %}
+                            <span class="badge bg-warning text-dark fs-6">已選定買家（交易中）</span>
+                        {% elif listing.status == 'sold' %}
+                            <span class="badge bg-secondary fs-6">已售出完成</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-users me-2"></i> 申請買家清單 ({{ listing.applications.count() }} 人申請)</h5>
+
+                {% set apps = listing.applications.all() %}
+                {% if apps %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>申請買家</th>
+                                    <th>平均評分</th>
+                                    <th>違約/棄標次數</th>
+                                    <th>公開 FB/IG 社群連結</th>
+                                    <th>申請時間</th>
+                                    <th>狀態 / 操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for app_item in apps %}
+                                    <tr>
+                                        <td>
+                                            <strong class="text-dark">@{{ app_item.buyer.username }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-warning text-dark">★ {{ app_item.buyer.rating_avg }}</span>
+                                        </td>
+                                        <td>
+                                            {% if app_item.buyer.default_count > 0 %}
+                                                <span class="badge bg-danger">{{ app_item.buyer.default_count }} 次</span>
+                                            {% else %}
+                                                <span class="badge bg-success">0 次紀錄良好</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ app_item.buyer.social_link }}" target="_blank" class="btn btn-sm btn-outline-info rounded-pill">
+                                                <i class="fa-brands fa-square-facebook me-1"></i> 開啟審核社群 <i class="fa-solid fa-arrow-up-right-from-square ms-1" style="font-size: 0.75rem;"></i>
+                                            </a>
+                                        </td>
+                                        <td class="text-muted small">
+                                            {{ app_item.created_at.strftime('%m/%d %H:%M') }}
+                                        </td>
+                                        <td>
+                                            {% if app_item.status == 'pending' and listing.status == 'active' %}
+                                                <div class="d-flex gap-2">
+                                                    <form method="POST" action="{{ url_for('accept_application', app_id=app_item.id) }}">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                        <button type="submit" class="btn btn-sm btn-success rounded-pill px-3" onclick="return confirm('確定要將票券賣給此買家嗎？確定後將進入模擬履約狀態機！');">
+                                                            <i class="fa-solid fa-check me-1"></i> 勾選選定此買家
+                                                        </button>
+                                                    </form>
+                                                    <form method="POST" action="{{ url_for('reject_application', app_id=app_item.id) }}">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                                                            拒絕
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            {% elif app_item.status == 'accepted' %}
+                                                <span class="badge bg-success p-2 fs-6"><i class="fa-solid fa-trophy me-1"></i> 得標者 (已選定)</span>
+                                            {% else %}
+                                                <span class="badge bg-light text-muted">未獲選</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted small mb-0">尚無球迷提出購買申請。</p>
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="card card-custom p-5 text-center">
+        <i class="fa-solid fa-box-open fa-3x text-muted mb-3"></i>
+        <p class="text-muted">您目前尚未刊登任何待售票券或商品。</p>
+        <div>
+            <a href="{{ url_for('create_listing') }}" class="btn btn-cpbl">立即刊登</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

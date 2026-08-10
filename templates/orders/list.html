@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}我的訂單與履約紀錄 | CPBL 票券平台{% endblock %}
+
+{% block content %}
+<h3 class="fw-bold mb-4" style="color: var(--cpbl-navy);">
+    <i class="fa-solid fa-file-invoice-dollar me-2"></i> 我的交易訂單 (履約保障狀態機)
+</h3>
+
+<ul class="nav nav-pills mb-4" id="orderTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active rounded-pill me-2 px-4" id="buy-tab" data-bs-toggle="pill" data-bs-target="#buy" type="button">
+            🛒 買家訂單 ({{ buy_orders|length }})
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link rounded-pill px-4" id="sell-tab" data-bs-toggle="pill" data-bs-target="#sell" type="button">
+            🏷️ 賣家訂單 ({{ sell_orders|length }})
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="orderTabContent">
+
+    <!-- Buyer Orders Tab -->
+    <div class="tab-pane fade show active" id="buy">
+        {% if buy_orders %}
+            {% for order in buy_orders %}
+                <div class="card card-custom mb-3">
+                    <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                        <div>
+                            <span class="badge bg-primary me-2">訂單 #{{ order.id }}</span>
+                            <span class="badge-team me-1">{{ order.listing.team }}</span>
+                            <span class="badge-stadium me-1">{{ order.listing.stadium }}</span>
+                            <h5 class="fw-bold my-2 text-dark">{{ order.listing.zone }} (${{ order.listing.price }} 元)</h5>
+                            <span class="text-muted small">賣家：@{{ order.seller.username }} | 時間：{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                        <div class="mt-3 mt-md-0 text-md-end">
+                            <div class="mb-2">
+                                {% if order.status == 'awaiting_payment' %}
+                                    <span class="badge bg-warning text-dark p-2 fs-6">⏳ 待模擬付款</span>
+                                {% elif order.status == 'paid' %}
+                                    <span class="badge bg-info text-dark p-2 fs-6">💳 已付款，待賣家給票</span>
+                                {% elif order.status == 'shipped' %}
+                                    <span class="badge bg-primary p-2 fs-6">📦 賣家已出貨，待確認收票</span>
+                                {% elif order.status == 'completed' %}
+                                    <span class="badge bg-success p-2 fs-6">🎉 交易完成</span>
+                                {% elif order.status == 'disputed' %}
+                                    <span class="badge bg-danger p-2 fs-6">⚠️ 爭議申訴中</span>
+                                {% endif %}
+                            </div>
+                            <a href="{{ url_for('order_detail', order_id=order.id) }}" class="btn btn-cpbl btn-sm">前往推進狀態 / 詳情</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="card card-custom p-4 text-center text-muted">
+                無購買訂單紀錄
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Seller Orders Tab -->
+    <div class="tab-pane fade" id="sell">
+        {% if sell_orders %}
+            {% for order in sell_orders %}
+                <div class="card card-custom mb-3">
+                    <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                        <div>
+                            <span class="badge bg-secondary me-2">訂單 #{{ order.id }}</span>
+                            <span class="badge-team me-1">{{ order.listing.team }}</span>
+                            <span class="badge-stadium me-1">{{ order.listing.stadium }}</span>
+                            <h5 class="fw-bold my-2 text-dark">{{ order.listing.zone }} (${{ order.listing.price }} 元)</h5>
+                            <span class="text-muted small">得標買家：@{{ order.buyer.username }} | 時間：{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                        <div class="mt-3 mt-md-0 text-md-end">
+                            <div class="mb-2">
+                                {% if order.status == 'awaiting_payment' %}
+                                    <span class="badge bg-warning text-dark p-2 fs-6">⏳ 等待買家模擬付款</span>
+                                {% elif order.status == 'paid' %}
+                                    <span class="badge bg-info text-dark p-2 fs-6">💳 買家已付款！待您轉贈給票</span>
+                                {% elif order.status == 'shipped' %}
+                                    <span class="badge bg-primary p-2 fs-6">📦 已按出貨，等待買家收票</span>
+                                {% elif order.status == 'completed' %}
+                                    <span class="badge bg-success p-2 fs-6">🎉 交易完成（撥款成功）</span>
+                                {% elif order.status == 'disputed' %}
+                                    <span class="badge bg-danger p-2 fs-6">⚠️ 爭議申訴中</span>
+                                {% endif %}
+                            </div>
+                            <a href="{{ url_for('order_detail', order_id=order.id) }}" class="btn btn-cpbl btn-sm">前往推進狀態 / 詳情</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="card card-custom p-4 text-center text-muted">
+                無銷售訂單紀錄
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

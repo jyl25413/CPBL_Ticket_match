@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}CPBL 雙向媒合看板 | 待售 vs 徵票{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h2 class="fw-bold text-dark mb-1">⚾ CPBL 雙向媒合看板</h2>
+        <p class="text-muted mb-0">首頁並排呈現「待售票券」與「徵票需求」，賣家自主審核社群選人，保障同隊球迷優先接手！</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <a href="{{ url_for('create_listing') }}" class="btn btn-cpbl me-2">
+            <i class="fa-solid fa-plus me-1"></i> 我要賣票/物品
+        </a>
+        <a href="{{ url_for('create_want_to_buy') }}" class="btn btn-outline-dark rounded-3">
+            <i class="fa-solid fa-bullhorn me-1"></i> 我要徵票
+        </a>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card card-custom mb-4 p-3 border-0 bg-white">
+    <form method="GET" action="{{ url_for('index') }}" class="row g-2 align-items-center">
+        <div class="col-md-3">
+            <label class="form-label text-muted small mb-1 fw-bold"><i class="fa-solid fa-people-group me-1"></i> 依球隊篩選</label>
+            <select name="team" class="form-select rounded-3">
+                <option value="">全部球隊</option>
+                {% for team in teams %}
+                    <option value="{{ team }}" {% if selected_team == team %}selected{% endif %}>{{ team }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label text-muted small mb-1 fw-bold"><i class="fa-solid fa-location-dot me-1"></i> 依球場篩選</label>
+            <select name="stadium" class="form-select rounded-3">
+                <option value="">全部球場</option>
+                {% for stadium in stadiums %}
+                    <option value="{{ stadium }}" {% if selected_stadium == stadium %}selected{% endif %}>{{ stadium }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label text-muted small mb-1 fw-bold"><i class="fa-solid fa-layer-group me-1"></i> 類別</label>
+            <select name="category" class="form-select rounded-3">
+                <option value="">全部 (球票+週邊)</option>
+                <option value="ticket" {% if selected_category == 'ticket' %}selected{% endif %}>球票</option>
+                <option value="merch" {% if selected_category == 'merch' %}selected{% endif %}>週邊商品</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100 rounded-3 me-2" style="background-color: var(--cpbl-blue);">
+                <i class="fa-solid fa-filter me-1"></i> 搜尋
+            </button>
+            <a href="{{ url_for('index') }}" class="btn btn-light rounded-3">重設</a>
+        </div>
+    </form>
+</div>
+
+<!-- Dual Board (Side-by-Side) -->
+<div class="row g-4">
+
+    <!-- Column 1: Want to Sell (待售列表) -->
+    <div class="col-lg-6">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-2 border-primary">
+            <h4 class="fw-bold mb-0 text-primary">
+                <i class="fa-solid fa-ticket me-2"></i> 待售看板 (Want to Sell)
+            </h4>
+            <span class="badge bg-primary rounded-pill">{{ listings|length }} 筆可供申請</span>
+        </div>
+
+        {% if listings %}
+            {% for item in listings %}
+                <div class="card card-custom mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="badge-team me-1">{{ item.team }}</span>
+                                <span class="badge-stadium me-1">{{ item.stadium }}</span>
+                                <span class="badge bg-secondary">{{ item.category }}</span>
+                            </div>
+                            <div class="text-end">
+                                <span class="text-muted small text-decoration-line-through me-1">原價 ${{ item.original_price }}</span>
+                                <span class="fs-5 fw-bold text-danger">${{ item.price }}</span>
+                            </div>
+                        </div>
+
+                        <h5 class="fw-bold text-dark my-2">{{ item.zone }}（{{ item.ticket_type }}）</h5>
+                        
+                        <div class="d-flex justify-content-between align-items-center text-muted small mt-3 pt-2 border-top">
+                            <div>
+                                <span><i class="fa-solid fa-truck-fast me-1"></i> {{ item.delivery_method }}</span> |
+                                <span><i class="fa-solid fa-user me-1"></i> 賣家 @{{ item.seller.username }} (★{{ item.seller.rating_avg }})</span>
+                            </div>
+                            <a href="{{ url_for('listing_detail', listing_id=item.id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                檢視 / 申請購買 <i class="fa-solid fa-chevron-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-5 bg-white rounded-4 shadow-sm">
+                <i class="fa-solid fa-ticket-simple fa-3x text-muted mb-3"></i>
+                <p class="text-muted">目前沒有符合條件的待售票券</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Column 2: Want to Buy (徵票列表) -->
+    <div class="col-lg-6">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-2 border-success">
+            <h4 class="fw-bold mb-0 text-success">
+                <i class="fa-solid fa-bullhorn me-2"></i> 徵票看板 (Want to Buy)
+            </h4>
+            <span class="badge bg-success rounded-pill">{{ wants_to_buy|length }} 筆徵求中</span>
+        </div>
+
+        {% if wants_to_buy %}
+            {% for wtb in wants_to_buy %}
+                <div class="card card-custom mb-3 border-start border-4 border-success">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="badge-team me-1">{{ wtb.team }}</span>
+                                <span class="badge-stadium me-1">{{ wtb.stadium }}</span>
+                                <span class="badge bg-secondary">{{ wtb.category }}</span>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold text-success">
+                                    {% if wtb.max_price %}
+                                        預算上限: ${{ wtb.max_price }}
+                                    {% else %}
+                                        預算面議
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+
+                        <h5 class="fw-bold text-dark my-2">徵 {{ wtb.quantity }} 張：{{ wtb.zone or '不限區域' }}</h5>
+                        {% if wtb.note %}
+                            <p class="card-text text-muted small bg-light p-2 rounded-2 mb-2">
+                                <i class="fa-regular fa-comment-dots me-1"></i> {{ wtb.note }}
+                            </p>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between align-items-center text-muted small mt-2 pt-2 border-top">
+                            <div>
+                                <span><i class="fa-solid fa-user me-1"></i> 買家 @{{ wtb.buyer.username }} (★{{ wtb.buyer.rating_avg }})</span>
+                            </div>
+                            <a href="{{ url_for('create_listing') }}" class="btn btn-sm btn-outline-success rounded-pill px-3">
+                                專屬讓票給他 <i class="fa-solid fa-paper-plane ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-5 bg-white rounded-4 shadow-sm">
+                <i class="fa-solid fa-face-smile fa-3x text-muted mb-3"></i>
+                <p class="text-muted">目前沒有符合條件的徵票需求</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

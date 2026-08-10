@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}個人資料與評分紀錄 | CPBL 票券平台{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card card-custom p-4 text-center">
+            <div class="mb-3">
+                <i class="fa-solid fa-user-circle fa-5x" style="color: var(--cpbl-blue);"></i>
+            </div>
+            <h4 class="fw-bold mb-1">{{ user.username }}</h4>
+            <p class="text-muted small mb-3">{{ user.email }}</p>
+
+            <div class="bg-light p-3 rounded-3 mb-3 text-start">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted"><i class="fa-solid fa-star text-warning me-1"></i> 平均評分：</span>
+                    <span class="fw-bold text-dark fs-5">{{ user.rating_avg }} / 5.0</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted"><i class="fa-solid fa-triangle-exclamation text-danger me-1"></i> 棄標/違約紀錄：</span>
+                    <span class="fw-bold text-danger">{{ user.default_count }} 次</span>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('profile') }}" class="text-start">
+                <label class="form-label font-weight-bold small text-muted">公開 FB/IG 社群網址</label>
+                <div class="input-group mb-2">
+                    <input type="url" name="social_link" class="form-control form-control-sm" value="{{ user.social_link }}" required>
+                    <button class="btn btn-sm btn-outline-primary" type="submit">更新</button>
+                </div>
+                <div class="form-text small">賣家將點擊此連結審核您的球迷身分。</div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card card-custom p-4">
+            <h4 class="fw-bold mb-3" style="color: var(--cpbl-navy);">
+                <i class="fa-solid fa-comments me-2"></i> 收到的評價紀錄 ({{ ratings|length }} 筆)
+            </h4>
+
+            {% if ratings %}
+                {% for r in ratings %}
+                    <div class="border-bottom pb-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div>
+                                <span class="fw-bold text-dark">評價者：@{{ rater_user.username if (rater_user := r.order.buyer if r.rater_id == r.order.buyer_id else r.order.seller) else '匿名球迷' }}</span>
+                                <span class="badge bg-warning text-dark ms-2">★ {{ r.score }} 星</span>
+                                {% if r.is_default %}
+                                    <span class="badge bg-danger ms-1">標記違約/棄標</span>
+                                {% endif %}
+                            </div>
+                            <span class="text-muted small">{{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                        <p class="mb-0 text-secondary bg-light p-2 rounded-2 mt-2">
+                            {{ r.comment or '買賣雙方未填寫詳細評語' }}
+                        </p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="fa-regular fa-comment-dots fa-3x mb-3"></i>
+                    <p>目前尚無交易評價紀錄</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}發布徵票需求 | CPBL 票券平台{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-7">
+        <div class="card card-custom p-4 shadow-sm border-start border-4 border-success">
+            <h3 class="fw-bold mb-2 text-success"><i class="fa-solid fa-bullhorn me-2"></i> 發布徵票 / 徵求需求</h3>
+            <p class="text-muted small mb-3">找不到想要的票嗎？刊登徵求資訊，讓有票的球迷主動讓票給您！</p>
+
+            <form method="POST" action="{{ url_for('create_want_to_buy') }}">
+                {{ form.hidden_tag() }}
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        {{ form.category.label(class="form-label font-weight-bold") }}
+                        {{ form.category(class="form-select rounded-3") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.team.label(class="form-label font-weight-bold") }}
+                        {{ form.team(class="form-select rounded-3") }}
+                    </div>
+
+                    <div class="col-md-6">
+                        {{ form.stadium.label(class="form-label font-weight-bold") }}
+                        {{ form.stadium(class="form-select rounded-3") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.quantity.label(class="form-label font-weight-bold") }}
+                        {{ form.quantity(class="form-control rounded-3") }}
+                    </div>
+
+                    <div class="col-md-6">
+                        {{ form.zone.label(class="form-label font-weight-bold") }}
+                        {{ form.zone(class="form-control rounded-3", placeholder="例：內野熱區、B區連號") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.max_price.label(class="form-label font-weight-bold") }}
+                        {{ form.max_price(class="form-control rounded-3", placeholder="上限單價 (選填)") }}
+                    </div>
+
+                    <div class="col-12">
+                        {{ form.note.label(class="form-label font-weight-bold") }}
+                        {{ form.note(class="form-control rounded-3", rows="3", placeholder="說明求票緣由、希望能面交球場等資訊...") }}
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top">
+                    {{ form.submit(class="btn btn-success w-100 py-2 fs-6 rounded-3") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

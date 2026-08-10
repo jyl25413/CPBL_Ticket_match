@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}訂單 #{{ order.id }} 履約保障詳情 | CPBL 票券平台{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+
+        <!-- Header Card -->
+        <div class="card card-custom p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="fw-bold mb-0" style="color: var(--cpbl-navy);">
+                    <i class="fa-solid fa-shield-halved text-success me-2"></i> 訂單 #{{ order.id }} 模擬履約保障狀態機
+                </h4>
+                <span class="text-muted small">建立時間：{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+
+            <!-- State Machine Progress Bar -->
+            <div class="py-3 px-2 bg-light rounded-4 mb-4">
+                <div class="row text-center position-relative">
+                    <div class="col-3">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-1 text-white {{ 'bg-success' if order.status in ['awaiting_payment', 'paid', 'shipped', 'completed'] else 'bg-secondary' }}" style="width:40px; height:40px;">1</div>
+                        <div class="small fw-bold {{ 'text-success' if order.status == 'awaiting_payment' else '' }}">1. 建立訂單</div>
+                        <div class="text-muted" style="font-size:0.75rem;">賣家選定買家</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-1 text-white {{ 'bg-success' if order.status in ['paid', 'shipped', 'completed'] else 'bg-secondary' }}" style="width:40px; height:40px;">2</div>
+                        <div class="small fw-bold {{ 'text-success' if order.status == 'paid' else '' }}">2. 買家付款</div>
+                        <div class="text-muted" style="font-size:0.75rem;">模擬金流扣款</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-1 text-white {{ 'bg-success' if order.status in ['shipped', 'completed'] else 'bg-secondary' }}" style="width:40px; height:40px;">3</div>
+                        <div class="small fw-bold {{ 'text-success' if order.status == 'shipped' else '' }}">3. 賣家給票</div>
+                        <div class="text-muted" style="font-size:0.75rem;">APP轉贈/實體寄出</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-1 text-white {{ 'bg-success' if order.status == 'completed' else 'bg-secondary' }}" style="width:40px; height:40px;">4</div>
+                        <div class="small fw-bold {{ 'text-success' if order.status == 'completed' else '' }}">4. 完成與評價</div>
+                        <div class="text-muted" style="font-size:0.75rem;">確認收件與撥款</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Status Alert -->
+            <div class="alert alert-info border-0 d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 class="fw-bold mb-1">
+                        當前狀態：
+                        {% if order.status == 'awaiting_payment' %}
+                            <span class="text-warning">⏳ 待買家進行【模擬付款】</span>
+                        {% elif order.status == 'paid' %}
+                            <span class="text-primary">💳 買家已付款！等待賣家【已轉贈 / 已寄出】</span>
+                        {% elif order.status == 'shipped' %}
+                            <span class="text-primary">📦 賣家已發送票券！等待買家【確認收票】</span>
+                        {% elif order.status == 'completed' %}
+                            <span class="text-success">🎉 交易順利完成！（模擬資金撥付賣家）</span>
+                        {% elif order.status == 'disputed' %}
+                            <span class="text-danger">⚠️ 申訴處理中</span>
+                        {% endif %}
+                    </h5>
+                    <p class="mb-0 small text-muted">本平台採用 Mocked Escrow 履約保障，透過按鈕推進確保雙方權利。</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons according to current state and current user role -->
+            <div class="p-3 bg-white border rounded-3 text-center my-2">
+                {% if order.status == 'awaiting_payment' %}
+                    {% if current_user.id == order.buyer_id %}
+                        <form method="POST" action="{{ url_for('order_pay', order_id=order.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-cpbl btn-lg px-5">
+                                <i class="fa-solid fa-credit-card me-2"></i> 點擊進行「模擬付款」 (${{ order.listing.price }} 元)
+                            </button>
+                        </form>
+                    {% else %}
+                        <p class="text-muted mb-0"><i class="fa-solid fa-hourglass-half me-1"></i> 已通知買家 @{{ order.buyer.username }} 進行模擬付款中...</p>
+                    {% endif %}
+
+                {% elif order.status == 'paid' %}
+                    {% if current_user.id == order.seller_id %}
+                        <form method="POST" action="{{ url_for('order_ship', order_id=order.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="fa-solid fa-paper-plane me-2"></i> 點擊確認「已轉贈 / 已寄出票券」
+                            </button>
+                        </form>
+                    {% else %}
+                        <p class="text-muted mb-0"><i class="fa-solid fa-truck-ramp-box me-1"></i> 您已付清款項，等待賣家 @{{ order.seller.username }} 進行 APP 轉贈或寄送票券...</p>
+                    {% endif %}
+
+                {% elif order.status == 'shipped' %}
+                    {% if current_user.id == order.buyer_id %}
+                        <form method="POST" action="{{ url_for('order_complete', order_id=order.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-success btn-lg px-5" onclick="return confirm('請確認您已在 APP 或現場收到正確無誤的票券！確定領收並撥款？');">
+                                <i class="fa-solid fa-box-open me-2"></i> 點擊「確認收票」（撥款給賣家）
+                            </button>
+                        </form>
+                    {% else %}
+                        <p class="text-muted mb-0"><i class="fa-solid fa-circle-check me-1"></i> 您已按出貨，等待買家 @{{ order.buyer.username }} 確認收到票券...</p>
+                    {% endif %}
+
+                {% elif order.status == 'completed' %}
+                    <p class="text-success font-weight-bold mb-0">🎉 交易已全數完成！下方可進行雙向評分與留下評語。</p>
+                {% endif %}
+
+                <!-- Dispute Option -->
+                {% if order.status in ['awaiting_payment', 'paid', 'shipped'] %}
+                    <hr>
+                    <form method="POST" action="{{ url_for('order_dispute', order_id=order.id) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn btn-link text-danger btn-sm text-decoration-none" onclick="return confirm('確定要就此訂單提出爭議申訴嗎？');">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i> 遇到詐騙/違約？點此提出【爭議申訴】
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Order Information & Delivery Note -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="card card-custom p-4 h-100">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-info me-2 text-primary"></i> 交易細節說明</h5>
+                    <p class="mb-2"><strong>球隊/標的：</strong> {{ order.listing.team }} ({{ order.listing.stadium }})</p>
+                    <p class="mb-2"><strong>區域與座位：</strong> {{ order.listing.zone }}</p>
+                    <p class="mb-2"><strong>數量與金額：</strong> {{ order.listing.quantity }} 張，總計 ${{ order.listing.price }} 元</p>
+                    <p class="mb-2"><strong>買家：</strong> @{{ order.buyer.username }} (<a href="{{ order.buyer.social_link }}" target="_blank">FB/IG</a>)</p>
+                    <p class="mb-0"><strong>賣家：</strong> @{{ order.seller.username }} (<a href="{{ order.seller.social_link }}" target="_blank">FB/IG</a>)</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card card-custom p-4 h-100">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-message me-2 text-primary"></i> 取票 / 面交聯絡資訊</h5>
+                    <form method="POST" action="{{ url_for('order_detail', order_id=order.id) }}">
+                        {{ note_form.hidden_tag() }}
+                        <div class="mb-2">
+                            {{ note_form.note(class="form-control rounded-3", rows="3", placeholder="例如：中職 APP 轉贈手機 09xx-xxx-xxx，面交約大巨蛋 2 號出口...") }}
+                        </div>
+                        <button type="submit" name="submit_note" class="btn btn-sm btn-outline-primary rounded-pill">儲存聯絡說明</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rating Section -->
+        {% if order.status in ['completed', 'disputed'] %}
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold mb-3" style="color: var(--cpbl-navy);">
+                    <i class="fa-solid fa-star text-warning me-2"></i> 雙向誠信評價與棄標紀錄
+                </h5>
+
+                {% if existing_rating %}
+                    <div class="alert alert-success border-0 mb-0">
+                        <i class="fa-solid fa-check-circle me-2"></i> 您已為此筆訂單提交過 {{ existing_rating.score }} 星評分！感謝維護 CPBL 球迷交易誠信。
+                    </div>
+                {% else %}
+                    <form method="POST" action="{{ url_for('order_rate', order_id=order.id) }}">
+                        {{ rating_form.hidden_tag() }}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                {{ rating_form.score.label(class="form-label font-weight-bold") }}
+                                {{ rating_form.score(class="form-select rounded-3") }}
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <div class="form-check mb-2">
+                                    {{ rating_form.is_default(class="form-check-input") }}
+                                    {{ rating_form.is_default.label(class="form-check-label text-danger font-weight-bold") }}
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                {{ rating_form.comment.label(class="form-label font-weight-bold") }}
+                                {{ rating_form.comment(class="form-control rounded-3", rows="2", placeholder="給予對方的評價與建議...") }}
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            {{ rating_form.submit(class="btn btn-warning font-weight-bold rounded-pill px-4") }}
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

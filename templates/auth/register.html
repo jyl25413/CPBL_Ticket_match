@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}註冊帳號 | CPBL 票券媒合平台{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-md-6 col-lg-5">
+        <div class="card card-custom p-4 shadow-sm border-0">
+            <h3 class="fw-bold text-center mb-3" style="color: var(--cpbl-navy);">⚾ 註冊 CPBL 會員帳號</h3>
+            <p class="text-muted small text-center mb-4">
+                為了落實讓票給同隊真心球迷與防詐審核，註冊時<span class="text-danger fw-bold">必須填寫公開的社群網址</span>！
+            </p>
+
+            <form method="POST" action="{{ url_for('register') }}">
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    {{ form.username.label(class="form-label font-weight-bold") }}
+                    {{ form.username(class="form-control rounded-3", placeholder="請輸入使用者名稱") }}
+                    {% for error in form.username.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.email.label(class="form-label font-weight-bold") }}
+                    {{ form.email(class="form-control rounded-3", placeholder="name@example.com") }}
+                    {% for error in form.email.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label font-weight-bold text-primary">
+                        <i class="fa-brands fa-facebook me-1"></i><i class="fa-brands fa-instagram me-1"></i> 
+                        {{ form.social_link.label.text }}
+                    </label>
+                    {{ form.social_link(class="form-control rounded-3 border-primary", placeholder="https://www.facebook.com/your_profile") }}
+                    <div class="form-text small text-muted">
+                        賣家審核申請時將檢視此連結，作為確認是否為同隊球迷與真實帳號之依據。
+                    </div>
+                    {% for error in form.social_link.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.password.label(class="form-label font-weight-bold") }}
+                    {{ form.password(class="form-control rounded-3") }}
+                    {% for error in form.password.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-4">
+                    {{ form.password_confirm.label(class="form-label font-weight-bold") }}
+                    {{ form.password_confirm(class="form-control rounded-3") }}
+                    {% for error in form.password_confirm.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                {{ form.submit(class="btn btn-cpbl w-100 py-2 fs-6") }}
+            </form>
+
+            <div class="text-center mt-3 pt-3 border-top">
+                <span class="text-muted">已有帳號？</span>
+                <a href="{{ url_for('login') }}" class="fw-bold text-decoration-none" style="color: var(--cpbl-blue);">立即登入</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

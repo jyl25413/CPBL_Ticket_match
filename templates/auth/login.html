@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}會員登入 | CPBL 票券媒合平台{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-md-5">
+        <div class="card card-custom p-4 shadow-sm border-0">
+            <h3 class="fw-bold text-center mb-3" style="color: var(--cpbl-navy);">⚾ 會員登入</h3>
+            <p class="text-muted small text-center mb-4">登入後即可進行票券刊登、購買申請與履約狀態管理</p>
+
+            <form method="POST" action="{{ url_for('login') }}">
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    {{ form.username.label(class="form-label font-weight-bold") }}
+                    {{ form.username(class="form-control rounded-3", placeholder="請輸入使用者名稱") }}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.password.label(class="form-label font-weight-bold") }}
+                    {{ form.password(class="form-control rounded-3") }}
+                </div>
+
+                <div class="mb-3 form-check">
+                    {{ form.remember_me(class="form-check-input") }}
+                    {{ form.remember_me.label(class="form-check-label text-muted small") }}
+                </div>
+
+                {{ form.submit(class="btn btn-cpbl w-100 py-2 fs-6") }}
+            </form>
+
+            <div class="text-center mt-3 pt-3 border-top">
+                <span class="text-muted">還沒有帳號嗎？</span>
+                <a href="{{ url_for('register') }}" class="fw-bold text-decoration-none" style="color: var(--cpbl-blue);">免費註冊</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

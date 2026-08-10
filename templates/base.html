@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CPBL 中華職棒球票媒合與寄賣平台{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        :root {
+            --cpbl-navy: #0B192C;
+            --cpbl-blue: #1E3E62;
+            --cpbl-orange: #FF6B00;
+            --cpbl-light: #F8F9FA;
+        }
+        body {
+            background-color: #F4F6F9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #2D3748;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar-custom {
+            background: linear-gradient(135deg, var(--cpbl-navy) 0%, var(--cpbl-blue) 100%);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: #FFFFFF !important;
+            letter-spacing: 0.5px;
+        }
+        .brand-badge {
+            background-color: var(--cpbl-orange);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-left: 6px;
+        }
+        .card-custom {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            background: #FFFFFF;
+        }
+        .card-custom:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .badge-team {
+            background-color: #E2E8F0;
+            color: #1A202C;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 8px;
+        }
+        .badge-stadium {
+            background-color: #EBF8FF;
+            color: #2B6CB0;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 8px;
+        }
+        .btn-cpbl {
+            background-color: var(--cpbl-orange);
+            color: white;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 18px;
+            transition: all 0.2s;
+        }
+        .btn-cpbl:hover {
+            background-color: #E05D00;
+            color: white;
+            box-shadow: 0 4px 12px rgba(255,107,0,0.3);
+        }
+        .footer {
+            margin-top: auto;
+            background-color: var(--cpbl-navy);
+            color: #A0AEC0;
+            padding: 24px 0;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top py-3">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                ⚾ CPBL 票券媒合與履約保障平台 <span class="brand-badge">MVP</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item me-2">
+                        <a class="nav-link text-white font-weight-bold" href="{{ url_for('index') }}">
+                            <i class="fa-solid fa-list-check me-1"></i> 雙向看板
+                        </a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item me-2">
+                            <a class="nav-link text-white" href="{{ url_for('create_listing') }}">
+                                <i class="fa-solid fa-plus-circle me-1"></i> 刊登待售
+                            </a>
+                        </li>
+                        <li class="nav-item me-2">
+                            <a class="nav-link text-white" href="{{ url_for('create_want_to_buy') }}">
+                                <i class="fa-solid fa-bullhorn me-1"></i> 發布徵票
+                            </a>
+                        </li>
+                        <li class="nav-item me-2">
+                            <a class="nav-link text-white" href="{{ url_for('seller_dashboard') }}">
+                                <i class="fa-solid fa-user-shield me-1"></i> 賣家審核
+                            </a>
+                        </li>
+                        <li class="nav-item me-2">
+                            <a class="nav-link text-white" href="{{ url_for('orders_list') }}">
+                                <i class="fa-solid fa-file-invoice-dollar me-1"></i> 我的訂單
+                            </a>
+                        </li>
+                        <li class="nav-item me-2">
+                            <a class="nav-link text-white position-relative" href="{{ url_for('notifications') }}">
+                                <i class="fa-solid fa-bell me-1"></i> 通知
+                                {% if unread_notifications_count > 0 %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        {{ unread_notifications_count }}
+                                    </span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown ms-2">
+                            <a class="nav-link dropdown-toggle text-white d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-circle-user fa-lg me-1"></i> {{ current_user.username }}
+                                <span class="badge bg-warning text-dark ms-1">★ {{ current_user.rating_avg }}</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="fa-solid fa-id-card me-2"></i> 個人資料與評分</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="fa-solid fa-right-from-bracket me-2"></i> 登出</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item me-2">
+                            <a class="nav-link text-white" href="{{ url_for('login') }}">登入</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-cpbl ms-2" href="{{ url_for('register') }}">註冊帳號</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show border-0 shadow-sm" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="container my-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p class="mb-1">⚾ 中華職棒 CPBL 球票與週邊安全媒合平台 | MVP Phase 1 履約保障系統</p>
+            <p class="mb-0 text-muted" style="font-size: 0.8rem;">本平台落實文化創意產業發展法防黃牛規範，強制轉售價格不可高於票面原價。</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ listing.team }} @ {{ listing.stadium }} 票券詳情 | CPBL 票券平台{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9 col-lg-8">
+        <div class="card card-custom p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <span class="badge-team me-2">{{ listing.team }}</span>
+                    <span class="badge-stadium me-2">{{ listing.stadium }}</span>
+                    <span class="badge bg-primary">{{ listing.ticket_type }}</span>
+                </div>
+                <div>
+                    {% if listing.status == 'active' %}
+                        <span class="badge bg-success fs-6"><i class="fa-solid fa-check-circle me-1"></i> 開放申請中</span>
+                    {% elif listing.status == 'pending' %}
+                        <span class="badge bg-warning text-dark fs-6"><i class="fa-solid fa-hourglass-half me-1"></i> 已選定買家（交易中）</span>
+                    {% elif listing.status == 'sold' %}
+                        <span class="badge bg-secondary fs-6"><i class="fa-solid fa-lock me-1"></i> 已售出</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <h3 class="fw-bold text-dark mb-3">{{ listing.zone }}</h3>
+
+            <div class="row bg-light p-3 rounded-3 my-3">
+                <div class="col-md-6 mb-2 mb-md-0">
+                    <span class="text-muted d-block small">票面原價</span>
+                    <span class="text-decoration-line-through text-muted">${{ listing.original_price }} 元</span>
+                </div>
+                <div class="col-md-6">
+                    <span class="text-muted d-block small">擬售單價 (防黃牛)</span>
+                    <span class="fs-4 fw-bold text-danger">${{ listing.price }} 元</span>
+                    {% if listing.price < listing.original_price %}
+                        <span class="badge bg-danger ms-1">低於原價讓票</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <ul class="list-group list-group-flush mb-4">
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted"><i class="fa-solid fa-cubes me-2"></i> 張數 / 數量：</span>
+                    <span class="fw-bold">{{ listing.quantity }} 張</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted"><i class="fa-solid fa-truck-fast me-2"></i> 給票方式：</span>
+                    <span class="fw-bold">{{ listing.delivery_method }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted"><i class="fa-solid fa-user me-2"></i> 賣家資訊：</span>
+                    <span>
+                        <strong class="text-dark">@{{ listing.seller.username }}</strong>
+                        <span class="badge bg-warning text-dark ms-1">★ {{ listing.seller.rating_avg }}</span>
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted"><i class="fa-solid fa-clock me-2"></i> 刊登時間：</span>
+                    <span class="text-secondary">{{ listing.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                </li>
+            </ul>
+
+            <!-- Application Section -->
+            <div class="p-3 bg-white border rounded-3 text-center">
+                {% if not current_user.is_authenticated %}
+                    <p class="text-muted mb-2">請先登入帳號以申請購買此票券</p>
+                    <a href="{{ url_for('login', next=url_for('listing_detail', listing_id=listing.id)) }}" class="btn btn-cpbl px-4">登入並申請購買</a>
+                {% elif current_user.id == listing.seller_id %}
+                    <p class="text-info fw-bold mb-0"><i class="fa-solid fa-info-circle me-1"></i> 這是您刊登的待售物件，請至【賣家審核後台】查看買家申請清單。</p>
+                    <a href="{{ url_for('seller_dashboard') }}" class="btn btn-outline-primary mt-2">前往賣家審核後台</a>
+                {% else %}
+                    {% if existing_application %}
+                        <div class="alert alert-info mb-0 border-0">
+                            <i class="fa-solid fa-clock me-2"></i> 您已於 {{ existing_application.created_at.strftime('%m/%d %H:%M') }} 提交購買申請。
+                            <br>狀態：<strong>{{ '審核中 (Pending)' if existing_application.status == 'pending' else ('已獲選！' if existing_application.status == 'accepted' else '未獲選') }}</strong>
+                        </div>
+                    {% elif listing.status == 'active' %}
+                        <p class="text-muted small mb-3">
+                            <i class="fa-solid fa-shield-halved text-success me-1"></i>
+                            本平台非「先搶先贏」，點擊申請後您的 FB/IG 社群連結將送交賣家審核，由賣家決定挑選哪一位球迷購票！
+                        </p>
+                        <form method="POST" action="{{ url_for('apply_listing', listing_id=listing.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-cpbl btn-lg w-100 py-2">
+                                <i class="fa-solid fa-hand-holding-heart me-2"></i> 申請購買 (送出社群審核)
+                            </button>
+                        </form>
+                    {% else %}
+                        <p class="text-secondary mb-0">此票券已被賣家選定買家或已售出。</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
