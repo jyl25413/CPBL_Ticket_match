@@ -34,6 +34,33 @@ def test_user_registration_and_login(client):
     assert res_login.status_code == 200
     assert b'seller1' in res_login.data
 
+def test_api_register(client):
+    # Test valid API Registration with Email + Password
+    res = client.post('/api/register', json={
+        'email': 'newapiuser@example.com',
+        'password': 'secretpassword123'
+    })
+    assert res.status_code == 201
+    json_data = res.get_json()
+    assert json_data['status'] == 'success'
+    assert json_data['user']['email'] == 'newapiuser@example.com'
+    assert json_data['user']['username'] == 'newapiuser'
+
+    # Test Duplicate Email Registration
+    res_dup = client.post('/api/register', json={
+        'email': 'newapiuser@example.com',
+        'password': 'secretpassword123'
+    })
+    assert res_dup.status_code == 400
+    assert res_dup.get_json()['status'] == 'error'
+
+    # Test Invalid Password (too short)
+    res_short = client.post('/api/register', json={
+        'email': 'shortpass@example.com',
+        'password': '123'
+    })
+    assert res_short.status_code == 400
+
 def test_anti_scalping_validation(client):
     # Register user
     client.post('/register', data={

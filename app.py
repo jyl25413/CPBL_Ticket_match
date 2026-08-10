@@ -51,6 +51,60 @@ def register():
         return redirect(url_for('login'))
     return render_template('auth/register.html', form=form)
 
+@app.route('/api/register', methods=['POST'])
+@csrf.exempt
+def api_register():
+    data = request.get_json(silent=True) or request.form
+    email = data.get('email', '').strip()
+    password = data.get('password', '').strip()
+    username = data.get('username', '').strip()
+    social_link = data.get('social_link', '').strip()
+
+    if not email:
+        return jsonify({'status': 'error', 'message': '請提供 Email 信箱！'}), 400
+    if '@' not in email:
+        return jsonify({'status': 'error', 'message': 'Email 格式不正確！'}), 400
+    if not password:
+        return jsonify({'status': 'error', 'message': '請提供密碼！'}), 400
+    if len(password) < 6:
+        return jsonify({'status': 'error', 'message': '密碼長度至少需 6 個字元！'}), 400
+
+    if User.query.filter_by(email=email).first():
+        return jsonify({'status': 'error', 'message': '此 Email 已被註冊！'}), 400
+
+    if not username:
+        base_username = email.split('@')[0]
+        username = base_username
+        counter = 1
+        while User.query.filter_by(username=username).first():
+            username = f"{base_username}_{counter}"
+            counter += 1
+    elif User.query.filter_by(username=username).first():
+        return jsonify({'status': 'error', 'message': '此使用者名稱已被使用！'}), 400
+
+    if not social_link:
+        social_link = f"https://facebook.com/{username}"
+
+    user = User(
+        username=username,
+        email=email,
+        social_link=social_link
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({
+        'status': 'success',
+        'message': '註冊成功！',
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'username': user.username,
+            'social_link': user.social_link
+        }
+    }), 201
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
