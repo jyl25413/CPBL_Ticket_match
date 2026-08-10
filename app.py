@@ -1,3 +1,4 @@
+import re
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
@@ -10,6 +11,14 @@ app.config.from_object(Config)
 
 csrf = CSRFProtect(app)
 db.init_app(app)
+
+with app.app_context():
+    db.create_all()
+
+@app.before_request
+def ensure_tables_exist():
+    db.create_all()
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = '請先登入系統以存取此功能。'
@@ -36,35 +45,112 @@ def create_notification(user_id, message, link=None):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
     form = RegistrationForm()
     if form.validate_on_submit():
+        raw_email = form.email.data or ''
+        cleaned_email = raw_email.strip().lower()
+        disp_name = (form.display_name.data or '').strip()
+
+        # Derive username
+        base_username = disp_name if disp_name else cleaned_email.split('@')[0]
+        username = base_username
+        counter = 1
+        while User.query.filter_by(username=username).first():
+            username = f"{base_username}_{counter}"
+            counter += 1
+
         user = User(
-            username=form.username.data,
-            email=form.email.data,
-            social_link=form.social_link.data
+            username=username,
+            display_name=disp_name,
+            email=cleaned_email,
+            social_link=f"https://facebook.com/{username}"
         )
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
-        flash('🎉 註冊成功！請使用新帳號登入。', 'success')
-        return redirect(url_for('login'))
+        
+        login_user(user)
+        flash(f'🎉 註冊成功！歡迎加入 CPBL 平台，{disp_name}！', 'success')
+        return redirect(url_for('dashboard')), 201
+
     return render_template('auth/register.html', form=form)
+
+@app.route('/api/register', methods=['POST'])
+@csrf.exempt
+def api_register():
+    data = request.get_json(silent=True) or request.form
+    raw_email = data.get('email', '')
+    cleaned_email = raw_email.strip().lower() if raw_email else ''
+    password = data.get('password', '')
+    confirm_password = data.get('confirm_password', data.get('password_confirm', ''))
+    display_name = data.get('display_name', data.get('username', '')).strip()
+
+    if not cleaned_email or '@' not in cleaned_email:
+        return jsonify({'status': 'error', 'message': '請輸入有效的 Email 格式'}), 400
+
+    if User.query.filter_by(email=cleaned_email).first():
+        return jsonify({'status': 'error', 'message': '此 Email 已被註冊'}), 400
+
+    if not password or len(password) < 8 or len(password) > 32 or not re.search(r'[A-Z]', password) or not re.search(r'\d', password):
+        return jsonify({'status': 'error', 'message': '密碼至少需 8 個字元且包含大寫與數字'}), 400
+
+    if confirm_password != password:
+        return jsonify({'status': 'error', 'message': '兩次輸入的密碼不一致'}), 400
+
+    if not display_name:
+        display_name = cleaned_email.split('@')[0]
+
+    base_username = display_name
+    username = base_username
+    counter = 1
+    while User.query.filter_by(username=username).first():
+        username = f"{base_username}_{counter}"
+        counter += 1
+
+    social_link = data.get('social_link', f"https://facebook.com/{username}")
+
+    user = User(
+        username=username,
+        display_name=display_name,
+        email=cleaned_email,
+        social_link=social_link
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+
+    login_user(user)
+
+    return jsonify({
+        'status': 'success',
+        'message': '註冊成功',
+        'redirect': url_for('dashboard'),
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'display_name': user.display_name,
+            'username': user.username
+        }
+    }), 201
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
+        user_input = form.username.data.strip().lower()
+        user = User.query.filter(
+            (User.email == user_input) | (User.username == form.username.data.strip())
+        ).first()
         if user is None or not user.check_password(form.password.data):
-            flash('❌ 帳號或密碼錯誤，請重新確認！', 'danger')
+            flash('❌ 帳號/Email 或密碼錯誤，請重新確認！', 'danger')
             return redirect(url_for('login'))
         login_user(user, remember=form.remember_me.data)
-        flash(f'👋 歡迎回來，{user.username}！', 'success')
+        flash(f'👋 歡迎回來，{user.display_name or user.username}！', 'success')
         next_page = request.args.get('next')
-        return redirect(next_page or url_for('index'))
+        return redirect(next_page or url_for('dashboard'))
     return render_template('auth/login.html', form=form)
 
 @app.route('/logout')
@@ -73,6 +159,11 @@ def logout():
     logout_user()
     flash('您已成功登出。', 'info')
     return redirect(url_for('index'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html', user=current_user)
 
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
@@ -190,7 +281,7 @@ def apply_listing(listing_id):
     # Notify Seller
     create_notification(
         user_id=listing.seller_id,
-        message=f'買家 @{current_user.username} 申請購買您刊登的「{listing.team} @ {listing.stadium}」票券，請至後台審核！',
+        message=f'買家 @{current_user.display_name or current_user.username} 申請購買您刊登的「{listing.team} @ {listing.stadium}」票券，請至後台審核！',
         link=url_for('seller_dashboard')
     )
 
@@ -478,13 +569,10 @@ def order_rate(order_id):
 @login_required
 def notifications():
     user_notifs = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.created_at.desc()).all()
-    # Mark all as read
     for n in user_notifs:
         n.is_read = True
     db.session.commit()
     return render_template('notifications.html', notifications=user_notifs)
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True, port=5000)

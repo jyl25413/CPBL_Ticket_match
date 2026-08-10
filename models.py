@@ -1,7 +1,8 @@
+import bcrypt
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash as werkzeug_check_password_hash
 
 db = SQLAlchemy()
 
@@ -9,10 +10,11 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    display_name = db.Column(db.String(64), nullable=False, default='球迷')
+    username = db.Column(db.String(64), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
-    social_link = db.Column(db.String(255), nullable=False)  # FB or IG link
+    social_link = db.Column(db.String(255), nullable=True)  # FB or IG link
     rating_avg = db.Column(db.Float, default=5.0)
     default_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -24,10 +26,14 @@ class User(UserMixin, db.Model):
     notifications = db.relationship('Notification', backref='user', lazy='dynamic')
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        salt = bcrypt.gensalt()
+        self.password_hash = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        try:
+            return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
+        except Exception:
+            return werkzeug_check_password_hash(self.password_hash, password)
 
     def recalculate_stats(self):
         ratings_received = Rating.query.filter_by(ratee_id=self.id).all()
@@ -46,13 +52,13 @@ class Listing(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     category = db.Column(db.String(32), default='ticket')  # 'ticket', 'merch'
-    team = db.Column(db.String(64), nullable=False)        # e.g., 中信兄弟, 統一7-ELEVEn獅, 樂天桃桃, 味全龍, 富邦悍將, 台鋼雄鷹
-    stadium = db.Column(db.String(64), nullable=False)     # e.g., 洲際, 新莊, 大巨蛋, 澄清湖, 天母, 桃園, 台南
-    zone = db.Column(db.String(64), nullable=False)        # e.g., 內野熱區, 外野, 熱區B區
-    ticket_type = db.Column(db.String(32), default='全票')  # 全票, 半票, 身障票
-    delivery_method = db.Column(db.String(64), default='中職APP轉贈') # APP轉贈, 面交, 郵寄
-    original_price = db.Column(db.Integer, nullable=False)  # 票面原價 (防黃牛)
-    price = db.Column(db.Integer, nullable=False)           # 轉售價 (必須 <= original_price)
+    team = db.Column(db.String(64), nullable=False)        
+    stadium = db.Column(db.String(64), nullable=False)     
+    zone = db.Column(db.String(64), nullable=False)        
+    ticket_type = db.Column(db.String(32), default='全票')  
+    delivery_method = db.Column(db.String(64), default='中職官方APP轉贈') 
+    original_price = db.Column(db.Integer, nullable=False)  
+    price = db.Column(db.Integer, nullable=False)           
     quantity = db.Column(db.Integer, default=1)
     ticket_image_url = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(32), default='active')     # active, pending, sold, cancelled
@@ -94,14 +100,12 @@ class Order(db.Model):
     buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     status = db.Column(db.String(32), default='awaiting_payment') 
-    # Statuses: awaiting_payment, paid, shipped, completed, disputed, cancelled, buyer_defaulted, seller_defaulted
     buyer_defaulted = db.Column(db.Boolean, default=False)
     seller_defaulted = db.Column(db.Boolean, default=False)
-    note = db.Column(db.Text, nullable=True)  # 取票與交貨聯繫資訊
+    note = db.Column(db.Text, nullable=True)  
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
     buyer = db.relationship('User', foreign_keys=[buyer_id], backref='buyer_orders')
     seller = db.relationship('User', foreign_keys=[seller_id], backref='seller_orders')
     ratings = db.relationship('Rating', backref='order', lazy='dynamic')

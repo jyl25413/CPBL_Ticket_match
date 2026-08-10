@@ -1,3 +1,4 @@
+import re
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, IntegerField, SelectField, TextAreaField, BooleanField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, NumberRange, URL, Optional
@@ -37,29 +38,34 @@ DELIVERY_METHODS = [
 ]
 
 class RegistrationForm(FlaskForm):
-    username = StringField('使用者名稱', validators=[DataRequired()])
-    email = StringField('電子信箱', validators=[DataRequired(), Email()])
-    social_link = StringField('個人公開 FB 或 IG 網址 (審核用)', validators=[
-        DataRequired(message='必須填寫 FB 或 IG 社群網址供賣家審核！'),
-        URL(message='請輸入有效的網址 (例如 https://facebook.com/yourid)')
+    email = StringField('Email 信箱', validators=[
+        DataRequired(message='請輸入有效的 Email 格式！'),
+        Email(message='請輸入有效的 Email 格式！')
     ])
-    password = PasswordField('密碼', validators=[DataRequired()])
-    password_confirm = PasswordField('確認密碼', validators=[
+    display_name = StringField('顯示名稱', validators=[
+        DataRequired(message='請輸入顯示名稱！')
+    ])
+    password = PasswordField('密碼', validators=[
+        DataRequired(message='密碼至少需 8 個字元且包含大寫與數字！')
+    ])
+    confirm_password = PasswordField('確認密碼', validators=[
         DataRequired(),
-        EqualTo('password', message='兩次輸入的密碼必須相同！')
+        EqualTo('password', message='兩次輸入的密碼不一致')
     ])
     submit = SubmitField('註冊帳號')
 
-    def validate_username(self, field):
-        if User.query.filter_by(username=field.data).first():
-            raise ValidationError('此使用者名稱已被使用！')
-
     def validate_email(self, field):
-        if User.query.filter_by(email=field.data).first():
-            raise ValidationError('此電子信箱已被註冊！')
+        cleaned_email = field.data.strip().lower() if field.data else ''
+        if User.query.filter_by(email=cleaned_email).first():
+            raise ValidationError('此 Email 已被註冊')
+
+    def validate_password(self, field):
+        pwd = field.data or ''
+        if len(pwd) < 8 or len(pwd) > 32 or not re.search(r'[A-Z]', pwd) or not re.search(r'\d', pwd):
+            raise ValidationError('密碼至少需 8 個字元且包含大寫與數字')
 
 class LoginForm(FlaskForm):
-    username = StringField('使用者名稱', validators=[DataRequired()])
+    username = StringField('使用者帳號 / Email', validators=[DataRequired()])
     password = PasswordField('密碼', validators=[DataRequired()])
     remember_me = BooleanField('記住我')
     submit = SubmitField('登入')

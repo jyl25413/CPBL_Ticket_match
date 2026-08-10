@@ -8,60 +8,90 @@
         <div class="card card-custom p-4 shadow-sm border-0">
             <h3 class="fw-bold text-center mb-3" style="color: var(--cpbl-navy);">⚾ 註冊 CPBL 會員帳號</h3>
             <p class="text-muted small text-center mb-4">
-                為了落實讓票給同隊真心球迷與防詐審核，註冊時<span class="text-danger fw-bold">必須填寫公開的社群網址</span>！
+                輸入 Email、顯示名稱與強效密碼建立新帳號
             </p>
 
-            <form method="POST" action="{{ url_for('register') }}">
-                {{ form.hidden_tag() }}
+            <ul class="nav nav-tabs nav-fill mb-3" id="registerTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold" id="form-tab" data-bs-toggle="tab" data-bs-target="#form-pane" type="button" role="tab">
+                        <i class="fa-solid fa-wpforms me-1"></i> 標準網頁註冊
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="api-tab" data-bs-toggle="tab" data-bs-target="#api-pane" type="button" role="tab">
+                        <i class="fa-solid fa-code me-1"></i> 快速 API 註冊
+                    </button>
+                </li>
+            </ul>
 
-                <div class="mb-3">
-                    {{ form.username.label(class="form-label font-weight-bold") }}
-                    {{ form.username(class="form-control rounded-3", placeholder="請輸入使用者名稱") }}
-                    {% for error in form.username.errors %}
-                        <div class="text-danger small mt-1">{{ error }}</div>
-                    {% endfor %}
+            <div class="tab-content" id="registerTabContent">
+                <!-- Standard Form Pane -->
+                <div class="tab-pane fade show active" id="form-pane" role="tabpanel">
+                    <form method="POST" action="{{ url_for('register') }}">
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            <label class="form-label font-weight-bold">Email 信箱 <span class="text-danger">*</span></label>
+                            {{ form.email(class="form-control rounded-3", placeholder="user@example.com") }}
+                            {% for error in form.email.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label font-weight-bold">顯示名稱 (Display Name) <span class="text-danger">*</span></label>
+                            {{ form.display_name(class="form-control rounded-3", placeholder="例如：小明") }}
+                            {% for error in form.display_name.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label font-weight-bold">密碼 <span class="text-danger">*</span></label>
+                            {{ form.password(class="form-control rounded-3", placeholder="8~32 個字元，須含大寫字母與數字") }}
+                            {% for error in form.password.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label font-weight-bold">確認密碼 <span class="text-danger">*</span></label>
+                            {{ form.confirm_password(class="form-control rounded-3", placeholder="再次輸入密碼") }}
+                            {% for error in form.confirm_password.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        {{ form.submit(class="btn btn-cpbl w-100 py-2 fs-6") }}
+                    </form>
                 </div>
 
-                <div class="mb-3">
-                    {{ form.email.label(class="form-label font-weight-bold") }}
-                    {{ form.email(class="form-control rounded-3", placeholder="name@example.com") }}
-                    {% for error in form.email.errors %}
-                        <div class="text-danger small mt-1">{{ error }}</div>
-                    {% endfor %}
+                <!-- API Registration Pane -->
+                <div class="tab-pane fade" id="api-pane" role="tabpanel">
+                    <div id="apiAlert" class="alert d-none" role="alert"></div>
+                    <form id="apiRegisterForm">
+                        <div class="mb-3">
+                            <label class="form-label font-weight-bold">Email 信箱 <span class="text-danger">*</span></label>
+                            <input type="email" id="apiEmail" class="form-control rounded-3" placeholder="user@example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label font-weight-bold">顯示名稱 <span class="text-danger">*</span></label>
+                            <input type="text" id="apiDisplayName" class="form-control rounded-3" placeholder="例如：小明" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label font-weight-bold">密碼 <span class="text-danger">*</span></label>
+                            <input type="password" id="apiPassword" class="form-control rounded-3" placeholder="8~32字元，含大寫英文字母與數字" required minlength="8" maxlength="32">
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label font-weight-bold">確認密碼 <span class="text-danger">*</span></label>
+                            <input type="password" id="apiConfirmPassword" class="form-control rounded-3" placeholder="再次輸入密碼" required minlength="8" maxlength="32">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 font-weight-bold rounded-3">
+                            <i class="fa-solid fa-paper-plane me-1"></i> 發送 /api/register 註冊
+                        </button>
+                    </form>
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label font-weight-bold text-primary">
-                        <i class="fa-brands fa-facebook me-1"></i><i class="fa-brands fa-instagram me-1"></i> 
-                        {{ form.social_link.label.text }}
-                    </label>
-                    {{ form.social_link(class="form-control rounded-3 border-primary", placeholder="https://www.facebook.com/your_profile") }}
-                    <div class="form-text small text-muted">
-                        賣家審核申請時將檢視此連結，作為確認是否為同隊球迷與真實帳號之依據。
-                    </div>
-                    {% for error in form.social_link.errors %}
-                        <div class="text-danger small mt-1">{{ error }}</div>
-                    {% endfor %}
-                </div>
-
-                <div class="mb-3">
-                    {{ form.password.label(class="form-label font-weight-bold") }}
-                    {{ form.password(class="form-control rounded-3") }}
-                    {% for error in form.password.errors %}
-                        <div class="text-danger small mt-1">{{ error }}</div>
-                    {% endfor %}
-                </div>
-
-                <div class="mb-4">
-                    {{ form.password_confirm.label(class="form-label font-weight-bold") }}
-                    {{ form.password_confirm(class="form-control rounded-3") }}
-                    {% for error in form.password_confirm.errors %}
-                        <div class="text-danger small mt-1">{{ error }}</div>
-                    {% endfor %}
-                </div>
-
-                {{ form.submit(class="btn btn-cpbl w-100 py-2 fs-6") }}
-            </form>
+            </div>
 
             <div class="text-center mt-3 pt-3 border-top">
                 <span class="text-muted">已有帳號？</span>
@@ -70,4 +100,46 @@
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('apiRegisterForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const alertBox = document.getElementById('apiAlert');
+    alertBox.className = 'alert alert-info border-0';
+    alertBox.textContent = '正在發送註冊請求至 /api/register...';
+
+    const payload = {
+        email: document.getElementById('apiEmail').value,
+        display_name: document.getElementById('apiDisplayName').value,
+        password: document.getElementById('apiPassword').value,
+        confirm_password: document.getElementById('apiConfirmPassword').value
+    };
+
+    try {
+        const response = await fetch('/api/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.status === 201 && data.status === 'success') {
+            alertBox.className = 'alert alert-success border-0';
+            alertBox.innerHTML = `🎉 ${data.message}！即將轉向至個人儀表板...`;
+            setTimeout(() => {
+                window.location.href = data.redirect || "{{ url_for('dashboard') }}";
+            }, 1000);
+        } else {
+            alertBox.className = 'alert alert-danger border-0';
+            alertBox.textContent = `❌ ${data.message || '註冊失敗'}`;
+        }
+    } catch (err) {
+        alertBox.className = 'alert alert-danger border-0';
+        alertBox.textContent = '❌ 連線錯誤，請稍後再試！';
+    }
+});
+</script>
 {% endblock %}

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}個人儀表板 | CPBL 票券平台{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-md-9 col-lg-8">
+        <div class="card card-custom p-4 shadow-sm">
+            <div class="d-flex align-items-center mb-4">
+                <i class="fa-solid fa-gauge-high fa-3x text-primary me-3"></i>
+                <div>
+                    <h3 class="fw-bold mb-1" style="color: var(--cpbl-navy);">歡迎回到個人儀表板</h3>
+                    <p class="text-muted mb-0">你好，<strong class="text-dark">{{ user.display_name or user.username }}</strong>！（Email: {{ user.email }}）</p>
+                </div>
+            </div>
+
+            <div class="alert alert-success border-0 rounded-3 mb-4">
+                <i class="fa-solid fa-check-circle me-2"></i> 帳號狀態正常，您可以開始體驗平台上的熱門球票媒合與履約保障服務！
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="bg-light p-3 rounded-3 text-center border">
+                        <i class="fa-solid fa-ticket fa-2x text-primary mb-2"></i>
+                        <h6 class="fw-bold">待售看板</h6>
+                        <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-primary mt-1">瀏覽球票</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="bg-light p-3 rounded-3 text-center border">
+                        <i class="fa-solid fa-plus-circle fa-2x text-success mb-2"></i>
+                        <h6 class="fw-bold">刊登讓票</h6>
+                        <a href="{{ url_for('create_listing') }}" class="btn btn-sm btn-outline-success mt-1">我要賣票</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="bg-light p-3 rounded-3 text-center border">
+                        <i class="fa-solid fa-user fa-2x text-info mb-2"></i>
+                        <h6 class="fw-bold">個人資料與評分</h6>
+                        <a href="{{ url_for('profile') }}" class="btn btn-sm btn-outline-info mt-1">檢視 Profile</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
