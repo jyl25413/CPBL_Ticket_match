@@ -45,7 +45,8 @@
                     <div class="border-bottom pb-3 mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <div>
-                                <span class="fw-bold text-dark">評價者：@{{ rater_user.username if (rater_user := r.order.buyer if r.rater_id == r.order.buyer_id else r.order.seller) else '匿名球迷' }}</span>
+                                {% set rater_user = r.order.buyer if r.rater_id == r.order.buyer_id else r.order.seller %}
+                                <span class="fw-bold text-dark">評價者：@{{ rater_user.username if rater_user else '匿名球迷' }}</span>
                                 <span class="badge bg-warning text-dark ms-2">★ {{ r.score }} 星</span>
                                 {% if r.is_default %}
                                     <span class="badge bg-danger ms-1">標記違約/棄標</span>
