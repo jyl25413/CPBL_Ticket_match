@@ -60,9 +60,12 @@ def register():
             username=form.username.data,
             social_link=form.social_link.data
         )
-        if not result["success"]:
+        if not result["is_valid"]:
             for error in result["errors"]:
-                flash(error, 'danger')
+                msg = error
+                if result.get("suggested_usernames"):
+                    msg += f" (建議可用帳號: {', '.join(result['suggested_usernames'])})"
+                flash(msg, 'danger')
             return render_template('auth/register.html', form=form)
 
         flash('🎉 註冊成功！請使用新帳號登入。', 'success')
@@ -81,9 +84,10 @@ def api_register():
         social_link=data.get('social_link', '')
     )
 
-    if not result["success"]:
+    if not result["is_valid"]:
         return jsonify({
             'status': 'error',
+            'is_valid': False,
             'message': result["errors"][0] if result.get("errors") else "註冊失敗",
             'error_code': result.get("error_code"),
             'suggested_usernames': result.get("suggested_usernames", [])
@@ -92,6 +96,7 @@ def api_register():
     user = result["user"]
     return jsonify({
         'status': 'success',
+        'is_valid': True,
         'message': '註冊成功！',
         'user': {
             'id': user.id,

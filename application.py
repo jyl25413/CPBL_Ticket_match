@@ -42,6 +42,7 @@ class RegisterUserUseCase:
 
         if not reg_result.is_valid:
             return {
+                "is_valid": False,
                 "success": False,
                 "error_code": reg_result.error_code,
                 "suggested_usernames": reg_result.suggested_usernames,
@@ -70,6 +71,7 @@ class RegisterUserUseCase:
         self.email_service.send_welcome_email(user.email, user.username)
 
         return {
+            "is_valid": True,
             "success": True,
             "error_code": None,
             "suggested_usernames": [],

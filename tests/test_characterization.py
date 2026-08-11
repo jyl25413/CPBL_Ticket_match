@@ -70,4 +70,32 @@ def test_characterization_api_register_duplicate_email(client):
     assert res.status_code == 400
     data = res.get_json()
     assert data['status'] == 'error'
+    assert data['is_valid'] is False
+    assert data['error_code'] == 'EMAIL_TAKEN'
     assert '已被註冊' in data['message'] or 'Email' in data['message']
+    assert isinstance(data['suggested_usernames'], list)
+
+def test_characterization_api_register_duplicate_username_suggestions(client):
+    # Pre-register a user with username 'taken_user'
+    client.post('/register', data={
+        'username': 'taken_user',
+        'email': 'original@example.com',
+        'social_link': 'https://facebook.com/orig',
+        'password': 'password123',
+        'password_confirm': 'password123'
+    })
+
+    # Try registering via API with same username
+    res = client.post('/api/register', json={
+        'username': 'taken_user',
+        'email': 'new_user@example.com',
+        'password': 'password123'
+    })
+
+    assert res.status_code == 400
+    data = res.get_json()
+    assert data['is_valid'] is False
+    assert data['error_code'] == 'USERNAME_TAKEN'
+    assert isinstance(data['suggested_usernames'], list)
+    assert len(data['suggested_usernames']) > 0
+
