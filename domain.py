@@ -7,6 +7,14 @@ import re
 from typing import List, Dict, Any, Optional
 
 @dataclass
+class User:
+    username: str
+    email: str
+    password_hash: str
+    social_link: str = ""
+    id: Optional[int] = None
+
+@dataclass
 class RegistrationResult:
     is_valid: bool
     error_code: Optional[str] = None

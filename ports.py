@@ -5,20 +5,27 @@ Defines abstract contracts for database repositories and external services.
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any
 
+from domain import User
+
 class UserRepository(ABC):
     @abstractmethod
-    def get_by_email(self, email: str) -> Optional[Any]:
+    def get_by_email(self, email: str) -> Optional[User]:
         """Retrieve user entity by email address."""
         pass
 
     @abstractmethod
-    def get_by_username(self, username: str) -> Optional[Any]:
-        """Retrieve user entity by username."""
+    def get_by_username(self, username: str) -> Optional[User]:
+        """Retrieve user entity by username. Returns None if not found."""
         pass
 
     @abstractmethod
-    def save(self, username: str, email: str, social_link: str, password: str) -> Any:
-        """Persist new user entity and return the user object."""
+    def exists_by_username(self, username: str) -> bool:
+        """Check if username exists in repository."""
+        pass
+
+    @abstractmethod
+    def save(self, user: User) -> None:
+        """Persist user entity."""
         pass
 
 class EmailService(ABC):
@@ -27,16 +34,8 @@ class EmailService(ABC):
         """Send welcome / registration confirmation email."""
         pass
 
-class UserRepositoryPort(ABC):
-    @abstractmethod
-    def exists_by_username(self, username: str) -> bool:
-        """Check if username already exists in repository."""
-        pass
-
-    @abstractmethod
-    def save(self, username: str) -> Any:
-        """Persist username in repository."""
-        pass
+# Alias for compatibility
+UserRepositoryPort = UserRepository
 
 class UsernameSuggesterPort(ABC):
     @abstractmethod

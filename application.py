@@ -3,7 +3,8 @@ Application Layer Use Cases for CPBL Ticket Match System.
 Orchestrates domain validation, user persistence, and external service side-effects.
 """
 from typing import Optional, Dict, Any, List
-from domain import validate_and_build_user, UserRegistrationResult, validate_username, InvalidUsernameError
+from werkzeug.security import generate_password_hash
+from domain import validate_and_build_user, UserRegistrationResult, validate_username, InvalidUsernameError, User as DomainUser
 from ports import UserRepository, EmailService, UserRepositoryPort, UsernameSuggesterPort
 
 class RegisterUserUseCase:
@@ -59,16 +60,20 @@ class RegisterUserUseCase:
                 final_username = f"{base_username}_{counter}"
                 counter += 1
 
-        # 4. Save User via Repository
-        user = self.user_repo.save(
+        # 4. Hash password and build Domain User entity
+        password_hash = generate_password_hash(reg_result.password) if reg_result.password else "hash"
+        domain_user = DomainUser(
             username=final_username,
             email=reg_result.email,
-            social_link=reg_result.social_link,
-            password=reg_result.password
+            password_hash=password_hash,
+            social_link=reg_result.social_link
         )
 
-        # 5. Send Welcome / Confirmation Email via EmailService
-        self.email_service.send_welcome_email(user.email, user.username)
+        # 5. Save User via Repository interface
+        saved_user = self.user_repo.save(domain_user) or domain_user
+
+        # 6. Send Welcome / Confirmation Email via EmailService
+        self.email_service.send_welcome_email(domain_user.email, domain_user.username)
 
         return {
             "is_valid": True,
@@ -76,7 +81,7 @@ class RegisterUserUseCase:
             "error_code": None,
             "suggested_usernames": [],
             "errors": [],
-            "user": user,
+            "user": saved_user,
             "initial_status": reg_result.initial_status,
             "default_rewards": reg_result.default_rewards
         }
