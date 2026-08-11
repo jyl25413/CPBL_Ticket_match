@@ -26,3 +26,21 @@ class EmailService(ABC):
     def send_welcome_email(self, email: str, username: str) -> bool:
         """Send welcome / registration confirmation email."""
         pass
+
+class UserRepositoryPort(ABC):
+    @abstractmethod
+    def exists_by_username(self, username: str) -> bool:
+        """Check if username already exists in repository."""
+        pass
+
+    @abstractmethod
+    def save(self, username: str) -> Any:
+        """Persist username in repository."""
+        pass
+
+class UsernameSuggesterPort(ABC):
+    @abstractmethod
+    def suggest(self, base_username: str, limit: int = 3) -> list[str]:
+        """Generate a list of recommended alternative usernames."""
+        pass
+

@@ -87,3 +87,34 @@ def validate_and_build_user(
             "free_listing_credits": 3
         }
     )
+
+class InvalidUsernameError(ValueError):
+    """Exception raised when a username fails domain validation rules."""
+    pass
+
+RESERVED_USERNAMES = {"admin", "root", "system", "superuser", "moderator", "official"}
+
+def validate_username(username: str) -> bool:
+    """
+    Validates a username against deterministic domain business rules.
+    - Length: 4 to 20 characters
+    - Pattern: Alphanumeric and underscores only ([a-zA-Z0-9_])
+    - Blocklist: Must not be a system reserved word
+    Raises InvalidUsernameError if non-compliant.
+    """
+    if not username:
+        raise InvalidUsernameError("使用者名稱不能為空。")
+        
+    username_str = str(username).strip()
+    
+    if len(username_str) < 4 or len(username_str) > 20:
+        raise InvalidUsernameError("使用者名稱長度必須介於 4 到 20 個字元之間。")
+        
+    if not re.match(r"^[a-zA-Z0-9_]+$", username_str):
+        raise InvalidUsernameError("使用者名稱只能包含英文字母、數字與底線。")
+        
+    if username_str.lower() in RESERVED_USERNAMES:
+        raise InvalidUsernameError(f"使用者名稱 '{username_str}' 為系統保留字，不得使用。")
+        
+    return True
+
