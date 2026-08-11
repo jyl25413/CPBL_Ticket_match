@@ -43,6 +43,8 @@ class RegisterUserUseCase:
         if not reg_result.is_valid:
             return {
                 "success": False,
+                "error_code": reg_result.error_code,
+                "suggested_usernames": reg_result.suggested_usernames,
                 "errors": reg_result.errors,
                 "user": None
             }
@@ -69,6 +71,8 @@ class RegisterUserUseCase:
 
         return {
             "success": True,
+            "error_code": None,
+            "suggested_usernames": [],
             "errors": [],
             "user": user,
             "initial_status": reg_result.initial_status,

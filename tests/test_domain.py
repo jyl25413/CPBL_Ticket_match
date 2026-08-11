@@ -93,4 +93,20 @@ def test_duplicate_username_flag():
     )
     
     assert result.is_valid is False
+    assert result.error_code == "USERNAME_TAKEN"
     assert "此使用者名稱已被使用！" in result.errors
+    assert len(result.suggested_usernames) > 0
+    assert "existing_user2026" in result.suggested_usernames
+
+def test_registration_result_named_fields():
+    result = validate_and_build_user(
+        email="bademail",
+        password="123"
+    )
+    assert hasattr(result, "is_valid")
+    assert hasattr(result, "error_code")
+    assert hasattr(result, "suggested_usernames")
+    assert result.is_valid is False
+    assert result.error_code == "INVALID_EMAIL"
+    assert isinstance(result.suggested_usernames, list)
+

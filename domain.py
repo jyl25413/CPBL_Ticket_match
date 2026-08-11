@@ -7,8 +7,10 @@ import re
 from typing import List, Dict, Any, Optional
 
 @dataclass
-class UserRegistrationResult:
+class RegistrationResult:
     is_valid: bool
+    error_code: Optional[str] = None
+    suggested_usernames: List[str] = field(default_factory=list)
     errors: List[str] = field(default_factory=list)
     email: str = ""
     username: str = ""
@@ -20,6 +22,26 @@ class UserRegistrationResult:
         "free_listing_credits": 3
     })
 
+# Backwards compatibility alias
+UserRegistrationResult = RegistrationResult
+
+def generate_username_suggestions(base_username: str, count: int = 3) -> List[str]:
+    """
+    Pure Python domain logic for generating alternative username suggestions.
+    """
+    if not base_username:
+        base_username = "user"
+    clean_base = re.sub(r'[^a-zA-Z0-9_]', '', base_username) or "user"
+    suffixes = ["2026", "_123", "_pro", "_dev", "_vip", "_888", "_001", "_99"]
+    suggestions: List[str] = []
+    for s in suffixes:
+        cand = f"{clean_base}{s}"
+        if 4 <= len(cand) <= 20 and cand not in suggestions:
+            suggestions.append(cand)
+            if len(suggestions) >= count:
+                break
+    return suggestions
+
 def validate_and_build_user(
     email: Optional[str] = None,
     password: Optional[str] = None,
@@ -28,12 +50,14 @@ def validate_and_build_user(
     social_link: Optional[str] = None,
     email_exists: bool = False,
     username_exists: bool = False
-) -> UserRegistrationResult:
+) -> RegistrationResult:
     """
     Validates user registration fields, normalizes data, and determines initial user status and rewards.
-    Pure Python validation logic.
+    Pure Python validation logic returning RegistrationResult.
     """
     errors: List[str] = []
+    error_code: Optional[str] = None
+    suggested_usernames: List[str] = []
     
     # 1. Normalize Email
     raw_email = email.strip() if email else ""
@@ -41,22 +65,28 @@ def validate_and_build_user(
     
     if not normalized_email:
         errors.append("請提供 Email 信箱！")
+        error_code = error_code or "MISSING_EMAIL"
     elif not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", normalized_email):
         errors.append("Email 格式不正確！")
+        error_code = error_code or "INVALID_EMAIL"
     elif email_exists:
         errors.append("此 Email 已被註冊！")
+        error_code = error_code or "EMAIL_TAKEN"
         
     # 2. Normalize Password
     raw_password = password.strip() if password else ""
     if not raw_password:
         errors.append("請提供密碼！")
+        error_code = error_code or "MISSING_PASSWORD"
     elif len(raw_password) < 4:
         errors.append("密碼長度至少需 4 個字元！")
+        error_code = error_code or "PASSWORD_TOO_SHORT"
         
     if password_confirm is not None:
         raw_password_confirm = password_confirm.strip() if password_confirm else ""
         if raw_password != raw_password_confirm:
             errors.append("兩次輸入的密碼必須相同！")
+            error_code = error_code or "PASSWORD_MISMATCH"
 
     # 3. Normalize Username
     raw_username = username.strip() if username else ""
@@ -65,6 +95,8 @@ def validate_and_build_user(
         
     if username_exists:
         errors.append("此使用者名稱已被使用！")
+        error_code = error_code or "USERNAME_TAKEN"
+        suggested_usernames = generate_username_suggestions(raw_username)
 
     # 4. Normalize Social Link
     raw_social_link = social_link.strip() if social_link else ""
@@ -74,8 +106,10 @@ def validate_and_build_user(
     # 5. Build Result
     is_valid = len(errors) == 0
     
-    return UserRegistrationResult(
+    return RegistrationResult(
         is_valid=is_valid,
+        error_code=error_code,
+        suggested_usernames=suggested_usernames,
         errors=errors,
         email=normalized_email,
         username=raw_username,

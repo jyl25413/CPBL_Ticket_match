@@ -82,7 +82,12 @@ def api_register():
     )
 
     if not result["success"]:
-        return jsonify({'status': 'error', 'message': result["errors"][0]}), 400
+        return jsonify({
+            'status': 'error',
+            'message': result["errors"][0] if result.get("errors") else "註冊失敗",
+            'error_code': result.get("error_code"),
+            'suggested_usernames': result.get("suggested_usernames", [])
+        }), 400
 
     user = result["user"]
     return jsonify({
