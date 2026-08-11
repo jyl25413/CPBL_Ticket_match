@@ -1,0 +1,26 @@
+[project]
+name = "cpbl"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "jyl25413", email = "jyl2590@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "email-validator>=2.1.0",
+    "flask>=3.0.0",
+    "flask-login>=0.6.3",
+    "flask-sqlalchemy>=3.1.1",
+    "flask-wtf>=1.2.1",
+    "pytest>=8.0.0",
+    "werkzeug>=3.0.0",
+    "wtforms>=3.1.1",
+]
+
+[project.scripts]
+cpbl = "cpbl:main"
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
