@@ -4,6 +4,7 @@ from flask_wtf.csrf import CSRFProtect
 from config import Config
 from models import db, User, Listing, WantToBuy, Application, Order, Rating, Notification
 from forms import RegistrationForm, LoginForm, ListingForm, WantToBuyForm, OrderNoteForm, RatingForm
+from domain import validate_and_build_user
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -47,12 +48,31 @@ def register():
         return redirect(url_for('index'))
     form = RegistrationForm()
     if form.validate_on_submit():
-        user = User(
-            username=form.username.data,
-            email=form.email.data,
-            social_link=form.social_link.data
+        raw_email = form.email.data or ''
+        raw_username = form.username.data or ''
+        email_exists = bool(raw_email and User.query.filter_by(email=raw_email.strip().lower()).first())
+        username_exists = bool(raw_username and User.query.filter_by(username=raw_username.strip()).first())
+
+        reg_result = validate_and_build_user(
+            email=raw_email,
+            password=form.password.data,
+            password_confirm=form.password_confirm.data,
+            username=raw_username,
+            social_link=form.social_link.data,
+            email_exists=email_exists,
+            username_exists=username_exists
         )
-        user.set_password(form.password.data)
+        if not reg_result.is_valid:
+            for error in reg_result.errors:
+                flash(error, 'danger')
+            return render_template('auth/register.html', form=form)
+
+        user = User(
+            username=reg_result.username,
+            email=reg_result.email,
+            social_link=reg_result.social_link
+        )
+        user.set_password(reg_result.password)
         db.session.add(user)
         db.session.commit()
         flash('🎉 註冊成功！請使用新帳號登入。', 'success')
@@ -63,42 +83,43 @@ def register():
 @csrf.exempt
 def api_register():
     data = request.get_json(silent=True) or request.form
-    email = data.get('email', '').strip()
-    password = data.get('password', '').strip()
-    username = data.get('username', '').strip()
-    social_link = data.get('social_link', '').strip()
+    raw_email = data.get('email', '')
+    raw_password = data.get('password', '')
+    raw_username = data.get('username', '')
+    raw_social_link = data.get('social_link', '')
 
-    if not email:
-        return jsonify({'status': 'error', 'message': '請提供 Email 信箱！'}), 400
-    if '@' not in email:
-        return jsonify({'status': 'error', 'message': 'Email 格式不正確！'}), 400
-    if not password:
-        return jsonify({'status': 'error', 'message': '請提供密碼！'}), 400
-    if len(password) < 6:
-        return jsonify({'status': 'error', 'message': '密碼長度至少需 6 個字元！'}), 400
+    norm_email = raw_email.strip().lower() if raw_email else ''
+    norm_username = raw_username.strip() if raw_username else ''
 
-    if User.query.filter_by(email=email).first():
-        return jsonify({'status': 'error', 'message': '此 Email 已被註冊！'}), 400
+    email_exists = bool(norm_email and User.query.filter_by(email=norm_email).first())
+    username_exists = bool(norm_username and User.query.filter_by(username=norm_username).first())
 
-    if not username:
-        base_username = email.split('@')[0]
-        username = base_username
+    reg_result = validate_and_build_user(
+        email=raw_email,
+        password=raw_password,
+        username=raw_username,
+        social_link=raw_social_link,
+        email_exists=email_exists,
+        username_exists=username_exists
+    )
+
+    if not reg_result.is_valid:
+        return jsonify({'status': 'error', 'message': reg_result.errors[0]}), 400
+
+    final_username = reg_result.username
+    if not norm_username:
+        base_username = final_username
         counter = 1
-        while User.query.filter_by(username=username).first():
-            username = f"{base_username}_{counter}"
+        while User.query.filter_by(username=final_username).first():
+            final_username = f"{base_username}_{counter}"
             counter += 1
-    elif User.query.filter_by(username=username).first():
-        return jsonify({'status': 'error', 'message': '此使用者名稱已被使用！'}), 400
-
-    if not social_link:
-        social_link = f"https://facebook.com/{username}"
 
     user = User(
-        username=username,
-        email=email,
-        social_link=social_link
+        username=final_username,
+        email=reg_result.email,
+        social_link=reg_result.social_link
     )
-    user.set_password(password)
+    user.set_password(reg_result.password)
     db.session.add(user)
     db.session.commit()
 
@@ -109,7 +130,9 @@ def api_register():
             'id': user.id,
             'email': user.email,
             'username': user.username,
-            'social_link': user.social_link
+            'social_link': user.social_link,
+            'status': reg_result.initial_status,
+            'rewards': reg_result.default_rewards
         }
     }), 201
 
