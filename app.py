@@ -4,7 +4,11 @@ from flask_wtf.csrf import CSRFProtect
 from config import Config
 from models import db, User, Listing, WantToBuy, Application, Order, Rating, Notification
 from forms import RegistrationForm, LoginForm, ListingForm, WantToBuyForm, OrderNoteForm, RatingForm
-from domain import validate_and_build_user
+from adapters import SqlAlchemyUserRepository, ConsoleEmailService
+from application import RegisterUserUseCase
+
+user_repo = SqlAlchemyUserRepository()
+email_service = ConsoleEmailService()
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -48,33 +52,19 @@ def register():
         return redirect(url_for('index'))
     form = RegistrationForm()
     if form.validate_on_submit():
-        raw_email = form.email.data or ''
-        raw_username = form.username.data or ''
-        email_exists = bool(raw_email and User.query.filter_by(email=raw_email.strip().lower()).first())
-        username_exists = bool(raw_username and User.query.filter_by(username=raw_username.strip()).first())
-
-        reg_result = validate_and_build_user(
-            email=raw_email,
+        use_case = RegisterUserUseCase(user_repo, email_service)
+        result = use_case.execute(
+            email=form.email.data,
             password=form.password.data,
             password_confirm=form.password_confirm.data,
-            username=raw_username,
-            social_link=form.social_link.data,
-            email_exists=email_exists,
-            username_exists=username_exists
+            username=form.username.data,
+            social_link=form.social_link.data
         )
-        if not reg_result.is_valid:
-            for error in reg_result.errors:
+        if not result["success"]:
+            for error in result["errors"]:
                 flash(error, 'danger')
             return render_template('auth/register.html', form=form)
 
-        user = User(
-            username=reg_result.username,
-            email=reg_result.email,
-            social_link=reg_result.social_link
-        )
-        user.set_password(reg_result.password)
-        db.session.add(user)
-        db.session.commit()
         flash('🎉 註冊成功！請使用新帳號登入。', 'success')
         return redirect(url_for('login'))
     return render_template('auth/register.html', form=form)
@@ -83,46 +73,18 @@ def register():
 @csrf.exempt
 def api_register():
     data = request.get_json(silent=True) or request.form
-    raw_email = data.get('email', '')
-    raw_password = data.get('password', '')
-    raw_username = data.get('username', '')
-    raw_social_link = data.get('social_link', '')
-
-    norm_email = raw_email.strip().lower() if raw_email else ''
-    norm_username = raw_username.strip() if raw_username else ''
-
-    email_exists = bool(norm_email and User.query.filter_by(email=norm_email).first())
-    username_exists = bool(norm_username and User.query.filter_by(username=norm_username).first())
-
-    reg_result = validate_and_build_user(
-        email=raw_email,
-        password=raw_password,
-        username=raw_username,
-        social_link=raw_social_link,
-        email_exists=email_exists,
-        username_exists=username_exists
+    use_case = RegisterUserUseCase(user_repo, email_service)
+    result = use_case.execute(
+        email=data.get('email', ''),
+        password=data.get('password', ''),
+        username=data.get('username', ''),
+        social_link=data.get('social_link', '')
     )
 
-    if not reg_result.is_valid:
-        return jsonify({'status': 'error', 'message': reg_result.errors[0]}), 400
+    if not result["success"]:
+        return jsonify({'status': 'error', 'message': result["errors"][0]}), 400
 
-    final_username = reg_result.username
-    if not norm_username:
-        base_username = final_username
-        counter = 1
-        while User.query.filter_by(username=final_username).first():
-            final_username = f"{base_username}_{counter}"
-            counter += 1
-
-    user = User(
-        username=final_username,
-        email=reg_result.email,
-        social_link=reg_result.social_link
-    )
-    user.set_password(reg_result.password)
-    db.session.add(user)
-    db.session.commit()
-
+    user = result["user"]
     return jsonify({
         'status': 'success',
         'message': '註冊成功！',
@@ -131,8 +93,8 @@ def api_register():
             'email': user.email,
             'username': user.username,
             'social_link': user.social_link,
-            'status': reg_result.initial_status,
-            'rewards': reg_result.default_rewards
+            'status': result["initial_status"],
+            'rewards': result["default_rewards"]
         }
     }), 201
 
